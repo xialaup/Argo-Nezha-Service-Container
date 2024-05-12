@@ -104,6 +104,7 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
         mv -f /tmp/dist/dashboard-linux-$ARCH $WORK_DIR/app
         cmd_systemctl enable >/dev/null 2>&1
       fi
+      sleep 30
     fi
     rm -rf /tmp/dist /tmp/dashboard.zip
   fi
@@ -128,7 +129,7 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
 
   # 克隆备份仓库，压缩备份文件，上传更新
   if [ "$IS_BACKUP" = 'true' ]; then
-    # 备份前先停掉面板，设置 git 环境变量，减少系统开支
+    # 设置 git 环境变量，减少系统开支
     if [ "$IS_DOCKER" != 1 ]; then
       cmd_systemctl disable >/dev/null 2>&1
       git config --global core.bigFileThreshold 1k
@@ -136,8 +137,6 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
       git config --global advice.detachedHead false
       git config --global pack.threads 1
       git config --global pack.windowMemory 50m
-    else
-      supervisorctl stop nezha >/dev/null 2>&1
     fi
     sleep 10
 
@@ -178,9 +177,9 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
 fi
 
 if [ "$IS_DOCKER" = 1 ]; then
-  supervisorctl start nezha >/dev/null 2>&1
   [ $(supervisorctl status all | grep -c "RUNNING") = $(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n All programs started! \n" || error "\n Failed to start program! \n"
 else
   cmd_systemctl enable >/dev/null 2>&1
+  sleep 2
   [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && info "\n Nezha dashboard started! \n" || error "\n Failed to start Nezha dashboard! \n"
 fi
